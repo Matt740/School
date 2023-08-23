@@ -1,0 +1,523 @@
+
+%SFD and BMD 
+P = 1341;
+Num_trains = 344;
+Length = 1200;
+Length_vector = 1:Length;
+x_train = [52 228 392 568 732 908];
+x_train = x_train - 52;
+SFD_max_vals = zeros(1,1200);
+BMD_max_vals = zeros(1,1200);
+
+%Reaction Forces
+
+for j = 0:344
+    x_train = x_train + 1;
+    moment_clockwise = x_train * P / 6;
+    B = sum(moment_clockwise)/1200;
+    A = P - B;
+    
+    %SFD
+    SFD_val = 1:Length;
+    cur_shear = A;
+    for i = 1:Length
+        SFD_val(i) = cur_shear;
+        SFD_max_vals(i) = max(SFD_max_vals(i),SFD_val(i));
+        if ismember(i, x_train)
+            cur_shear = cur_shear - P / 6;
+        end
+    end
+    
+    BMD = cumsum(SFD_val);
+    for i = 1:Length
+        cur_max = max(BMD_max_vals);
+        BMD_max_vals(i) = max(BMD_max_vals(i),BMD(i));
+        if max(BMD_max_vals) ~= cur_max
+           max_BM_train_start_location = x_train(1);
+        end
+    end
+end
+for i = 1:600
+    SFD_max_vals(1200-(i-1)) = (-1) * SFD_max_vals(i); 
+end
+Max_V = max(SFD_max_vals)
+Max_BMD = max(BMD_max_vals)
+Max_BM_Loc = find(BMD_max_vals == Max_BMD)
+
+% 3.A Sectional properties
+
+% dimensions written bottom, side, side, small, small, top
+% param = location, width, height
+
+web_seperation = 80;
+
+paramA = [0, 80, 1.27 ; % MIDDLE
+         1.27, 1.27, 120;
+         1.27, 1.27, 120;
+         120, 30, 1.27;
+         120, 30, 1.27;
+         120+1.27, 100, 2.54];
+
+paramB = [0, 80, 1.27 ; % SIDES
+         1.27, 1.27, 120;
+         1.27, 1.27, 120;
+         120, 6, 1.27;
+         120, 6, 1.27;
+         120+1.27, 100, 2.54];
+
+diaphramsA = 5
+diaphram_area_A = (paramA(1, 2)+5) * paramA(2, 3)
+
+diaphramsB = 4
+diaphram_area_B = (paramB(1, 2)+5) * paramB(2, 3)
+
+
+
+web_seperationA = 80;
+
+%Section Split
+left_mid = 380;
+right_mid = 820;
+length = 1260;
+
+% area A
+
+areaA = (right_mid - left_mid) * ( (max(paramA(1,2), paramA(1, 3))) + (max(paramA(2,2), paramA(2, 3))) + (max(paramA(3,2), paramA(3, 3))) + 1*(max(paramA(4,2), paramA(4, 3))) + 1*(max(paramA(5,2), paramA(5, 3))) + 2*(max(paramA(6,2), paramA(6, 3))) )
+
+
+% 3.A Sectional properties
+
+% dimensions written bottom, side, side, small, small, top
+% param = location, width, height
+
+
+areaB = (left_mid + (length - right_mid)) * ( (max(paramB(1,2), paramB(1, 3))) + (max(paramB(2,2), paramB(2, 3))) + (max(paramB(3,2), paramB(3, 3))) + (max(paramB(4,2), paramB(4, 3))) + (max(paramB(5,2), paramB(5, 3))) + 2*(max(paramB(6,2), paramB(6, 3))) )
+
+area_tot = areaA + areaB + diaphramsA*diaphram_area_A + diaphramsB*diaphram_area_B
+mat_area = 1016 * 812.8; % area of the matboard
+diff_area = mat_area - area_tot
+
+percent_used = (area_tot/mat_area) * 100
+
+web_seperationB = 80;
+
+
+
+
+
+% area tot
+%length = 1260;
+ 
+%area = length * ( (max(paramA(1,2), paramA(1, 3))) + (max(paramA(2,2), paramA(2, 3))) + (max(paramA(3,2), paramA(3, 3))) + (max(paramA(4,2), paramA(4, 3))) + (max(paramA(5,2), paramA(5, 3))) + 3*(max(paramA(6,2), paramA(6, 3))) );
+ 
+%max_area = 1016 * 812.8; % area of the matboard
+
+%diff_area = max_area - area;
+
+% yA calculation
+
+
+centroidsA = zeros(1, 6);
+
+for i=1:6
+    centroidsA(i) = paramA(i, 1) + (paramA(i, 3))/2;
+end
+
+
+areasA = zeros(1, 6);
+
+for i = 1:6
+    areasA(i) = paramA(i, 2) * paramA(i, 3);
+end
+sum_areasA = sum(areasA);
+y_barA = sum(centroidsA .* areasA)/sum_areasA;
+y_topA = paramA(6, 1) + paramA(6, 3) - y_barA;
+y_botA = y_barA;
+
+%yB calculation
+centroidsB = zeros(1, 6);
+
+
+for i=1:6
+    centroidsB(i) = paramB(i, 1) + (paramB(i, 3))/2;
+end
+
+
+areasB = zeros(1, 6);
+
+for i = 1:6
+    areasB(i) = paramB(i, 2) * paramB(i, 3);
+end
+sum_areasB = sum(areasB);
+y_barB = sum(centroidsB .* areasB)/sum_areasB;
+y_topB = paramB(6, 1) + paramB(6, 3) - y_barB;
+y_botB = y_barB;
+y_bar_vector_tot = zeros(1,1200) + y_barB;
+for i = left_mid:right_mid
+    y_bar_vector_tot(i) = y_barA;
+end
+
+y_top_vector_tot = zeros(1,1200) + y_topB;
+for i = left_mid:right_mid
+    y_top_vector_tot(i) = y_topA;
+end
+
+
+% Finding I A
+
+y_bar_vectorA = zeros(1,6);
+for i = 1:6
+    y_bar_vectorA(i) = y_barA;
+end
+
+distance_from_centroidA = abs(y_bar_vectorA - centroidsA); % Finding distance from y bar by subtracting and taking abs val
+IosA = zeros(1,8); % Summing up all Io and PAT contributions seperately
+for i = 1:6
+    IosA(i) = (paramA(i, 2) * (paramA(i, 3) .^ 3))/12;
+end
+
+PATsA = areasA .* (distance_from_centroidA .^ 2); % Ai * di^2
+Tot_IA = sum(IosA) + sum(PATsA);
+
+
+% Finding I B
+
+y_bar_vectorB = zeros(1,6);
+for i = 1:6
+    y_bar_vectorB(i) = y_barB;
+end
+
+distance_from_centroidB = abs(y_bar_vectorB - centroidsB); % Finding distance from y bar by subtracting and taking abs val
+IosB = zeros(1,8); % Summing up all Io and PAT contributions seperately
+for i = 1:6
+    IosB(i) = (paramB(i, 2) * (paramB(i, 3) .^ 3))/12;
+end
+
+PATsB = areasB .* (distance_from_centroidB .^ 2); % Ai * di^2
+Tot_IB = sum(IosB) + sum(PATsB);
+I_vector = zeros(1,1200)+Tot_IB;
+
+
+for i = left_mid:right_mid
+    I_vector(i) = Tot_IA;
+end
+
+% finding Q
+
+%q_areas = [paramA(1, 2)*paramA(1, 3) paramA(2, 2)*(y_bar - paramA(2, 1)) paramA(3, 2)*(y_bar - paramA(3, 1))];
+
+%di = [y_bar-(paramA(1, 3)/2) (y_bar- paramA(2, 1))/2 (y_bar-paramA(3, 1))/2];
+
+%q_cent = sum(q_areas.*di);
+
+%q_areas_glue = paramA(6, 2)*paramA(6, 3);
+%q_di_glue = y_top - paramA(6, 3)/2;
+
+%q_glue = sum(q_areas_glue .* q_di_glue);
+
+
+% finding Q A
+
+q_areasA = [paramA(1, 2)*paramA(1, 3) paramA(2, 2)*(y_barA - paramA(2, 1)) paramA(3, 2)*(y_barA - paramA(3, 1))];
+
+diA = [y_barA-(paramA(1, 3)/2) (y_barA- paramA(2, 1))/2 (y_barA-paramA(3, 1))/2];
+
+q_centA = sum(q_areasA.*diA);
+
+q_areas_glueA = paramA(6, 2)*paramA(6, 3);
+q_di_glueA = y_topA - paramA(6, 3)/2;
+
+q_glueA = sum(q_areas_glueA .* q_di_glueA);
+
+
+% finding Q B
+
+q_areasB = [paramB(1, 2)*paramB(1, 3) paramB(2, 2)*(y_barB - paramB(2, 1)) paramB(3, 2)*(y_barB - paramB(3, 1))];
+
+diB = [y_barB-(paramB(1, 3)/2) (y_barB- paramB(2, 1))/2 (y_barB-paramB(3, 1))/2];
+
+q_centB = sum(q_areasB.*diB);
+
+q_areas_glueB = paramB(6, 2)*paramB(6, 3);
+q_di_glueB = y_topB - paramB(6, 3)/2;
+
+q_glueB = sum(q_areas_glueB .* q_di_glueB);
+
+% vector 
+
+q_cent = zeros(1, 1200) + q_centB;
+for i = left_mid:right_mid
+    q_cent(i) = q_centA;
+end
+
+q_glue = zeros(1, 1200) + q_glueB;
+for i = left_mid:right_mid
+    q_glue(i) = q_glueA;
+end
+
+% 4. Applied Stresses
+
+%Flexural/Compression
+s_top = BMD_max_vals .* y_top_vector_tot ./ I_vector; %1
+s_bot = BMD_max_vals .* y_bar_vector_tot ./ I_vector; %2 %3 for different Cross-sections
+
+
+b_centA = paramA(2, 2) + paramA(3, 2);
+b_centB = paramB(2, 2) + paramB(3, 2);
+
+b_cent = zeros(1, 1200) + b_centB;
+for i = left_mid:right_mid
+    b_cent(i) = b_centA;
+end
+
+
+T_cent_vector = (SFD_max_vals .* q_cent) ./ (I_vector .* b_cent); %5
+
+b_glueA = paramA(4, 2) + paramA(5, 2);
+b_glueB = paramB(4, 2) + paramB(5, 2);
+
+b_glue = zeros(1, 1200) + b_glueB;
+for i = left_mid:right_mid
+    b_glue(i) = b_glueA;
+end
+
+
+T_gluea = (SFD_max_vals .* q_glue) ./ (I_vector .* b_glue); %6
+
+% 5. Material and thin plate buckling capacities
+
+E = 4000;
+mu = 0.2;
+t = 1.27;
+
+% +ve moment --> smiling, so top = comp, bot = tens
+
+S_tens = 30; %MPa
+S_comp = 6; %MPa
+T_mat = 4; %MPa
+T_gluec = 2; %MPa
+
+
+% case 1 A
+t_1A = paramA(6,3);
+b_1A = paramA(1, 2)-paramA(1,3);
+k_1A = 4;
+S_buck1A= (k_1A * pi^2 * E * t_1A^2) / (12 * (1-mu^2) * b_1A^2);
+
+% case 1 B
+t_1B = paramB(6,3);
+b_1B = paramB(1, 2)-paramB(1,3);
+k_1B = 4;
+S_buck1B = (k_1B * pi^2 * E * t_1B^2) / (12 * (1-mu^2) * b_1B^2);
+
+% vectorize case 1
+S_buck1 = zeros(1,1200)+S_buck1B;
+
+for i = left_mid:right_mid
+    S_buck1(i) = S_buck1A;
+end
+
+% case 2 A
+k_2A = 0.425;
+t_2A = paramA(6,3);
+b_2A = ((paramA(6,2) - paramA(1,2))/2) + (paramA(2, 2)/2);
+S_buck2A = (k_2A * pi^2 * E * t_2A^2) / (12 * (1-mu^2) * b_2A^2);
+
+% case 2 B
+k_2B = 0.425;
+t_2B = paramB(6,3);
+b_2B = ((paramB(6,2) - paramB(1,2))/2) + (paramB(2, 2)/2);
+S_buck2B = (k_2B * pi^2 * E * t_2B^2) / (12 * (1-mu^2) * b_2B^2);
+
+% vectorize case 2
+S_buck2 = zeros(1,1200)+S_buck2B;
+
+for i = left_mid:right_mid
+    S_buck2(i) = S_buck2A;
+end
+
+%case 3 A
+k_3A = 6;
+t_3A = paramA(2,2);
+b_3A = y_topA - paramA(6, 3)/2;
+S_buck3A = (k_3A * pi^2 * E * t_3A^2) / (12 * (1-mu^2) * b_3A^2);
+
+%case 3 B
+k_3B = 6;
+t_3B = paramB(2,2);
+b_3B = y_topB - paramB(6, 3)/2;
+S_buck3B = (k_3B * pi^2 * E * t_3B^2) / (12 * (1-mu^2) * b_3B^2);
+
+% vectorize case 3
+S_buck3 = zeros(1,1200)+S_buck3B;
+
+for i = left_mid:right_mid
+    S_buck3(i) = S_buck3A;
+end
+
+%case 4 A
+k_4A = 5;
+aA = 140;
+t_4A = paramA(2, 2);
+b_4A = (y_topA + y_botA) - 0.5*paramA(1, 3) - 0.5*paramA(6, 3);
+T_buckA = (k_4A * pi^2 * E) / (12 * (1-mu^2)) * ((t_4A/aA)^2 + (t_4A/b_4A)^2);
+
+%case 4 B
+k_4B = 5;
+aB = 140;
+t_4B = paramB(2, 2);
+b_4B = (y_topB + y_botB) - 0.5*paramB(1, 3) - 0.5*paramB(6, 3);
+T_buckB = (k_4B * pi^2 * E) / (12 * (1-mu^2)) * ((t_4B/aB)^2 + (t_4B/b_4B)^2);
+
+% vectorize case 4
+T_buck = zeros(1,1200)+T_buckB;
+
+for i = left_mid:right_mid
+    T_buck(i) = T_buckA;
+end
+
+
+%6. FOS
+S_tens_vector = zeros(1, 1200) + S_tens;
+FOS_tens = S_tens_vector ./ s_bot;
+
+S_comp_vector = zeros(1, 1200) + S_comp;
+FOS_comp = S_comp_vector ./ s_top;
+
+T_mat_vector = zeros(1, 1200) + T_mat;
+FOS_shear = T_mat_vector ./ T_cent_vector;
+
+FOS_glue  = T_gluec ./ T_gluea;
+FOS_buck1 = S_buck1 ./ s_top;
+FOS_buck2 = S_buck2 ./ s_top;
+FOS_buck3 = S_buck3 ./ s_top;
+
+T_buck_vector = zeros(1, 1200) + T_buck;
+FOS_buckV = T_buck_vector ./ T_cent_vector;
+
+%7. Min FOS
+paramA
+paramB
+diaphramsA
+diaphramsB
+left_mid 
+right_mid 
+
+areaA
+areaB
+
+
+percent_used
+Min_FOS = min(abs([FOS_tens FOS_comp FOS_shear FOS_glue FOS_buck1 FOS_buck2 FOS_buck3 FOS_buckV]))
+Max_load = Min_FOS * P
+y = max(y_bar_vector_tot)
+I = max(I_vector)
+min_FOS_tens = min(FOS_tens)
+min_FOS_comp = min(FOS_comp)
+min_FOS_shear = min(abs(FOS_shear))
+min_FOS_glue = min(abs(FOS_glue))
+min_FOS_buck1 = min(FOS_buck1)
+min_FOS_buck2 = min(FOS_buck2)
+min_FOS_buck3 = min(FOS_buck3)
+min_FOS_buckV = min(abs(FOS_buckV))
+
+
+
+% printing out key values
+max_BM_train_start_location;
+
+
+
+
+
+
+FOS_tens;
+FOS_comp; 
+FOS_shear; 
+FOS_glue;  
+FOS_buck1; 
+FOS_buck2;
+FOS_buck3;
+FOS_buckV; 
+
+Min_FOS;
+Max_load;
+
+% 8. Vfail and Mfail 
+Mf_tens  =  FOS_tens .* BMD_max_vals
+Mf_comp  =  FOS_comp .* BMD_max_vals;
+Vf_shear =  FOS_shear .* SFD_max_vals;
+Vf_glue  =  FOS_glue .* SFD_max_vals;
+Mf_buck1 =  FOS_buck1 .* BMD_max_vals;
+Mf_buck2 =  FOS_buck2 .* BMD_max_vals;
+Mf_buck3 =  FOS_buck3 .* BMD_max_vals;
+Vf_buckV =  FOS_buckV .* SFD_max_vals;
+
+%Graphing
+subplot(2,3,1)
+plot(Length_vector, Vf_shear,"-r")
+hold on
+plot(Length_vector, -Vf_shear,"-r")
+hold on
+plot(Length_vector,SFD_max_vals,"-k")
+legend("Shear Failure Matboard","location","best")
+ylabel("Shear Force (N)")
+xlabel("Location (mm)")
+hold off
+
+
+subplot(2,3,2)
+plot(Length_vector, Vf_glue,"-r")
+hold on
+plot(Length_vector, -Vf_glue,"-r")
+plot(Length_vector,SFD_max_vals,"-k")
+legend("Shear Failure Glue","location","best")
+title("Shear Force Envelope vs. Shear Force Capacities")
+ylabel("Shear Force (N)")
+xlabel("Location (mm)")
+hold off
+
+
+subplot(2,3,3)
+plot(Length_vector, Vf_buckV,"-r")
+hold on
+plot(Length_vector, -Vf_buckV,"-r")
+plot(Length_vector,SFD_max_vals,"-k")
+legend("Matboard Shear Buckling Failure","location","best")
+ylabel("Shear Force (N)")
+xlabel("Location (mm)")
+hold off
+
+subplot(2,3,4)
+plot(Length_vector, Mf_tens,"-r")
+hold on
+plot(Length_vector, Mf_comp,"-b")
+plot(Length_vector,BMD_max_vals,"-k")
+legend("Matboard Tension Failure","Matboard Compression Failure","location","best")
+ylabel("Bending Moment (N*mm)")
+xlabel("Location (mm)")
+set(gca,'Ydir','reverse')
+
+subplot(2,3,5)
+plot(Length_vector, Mf_buck1,"-r")
+hold on
+plot(Length_vector, Mf_buck2,"-b")
+title("Bending Moment Envelope vs. Bending Moment Capacities")
+plot(Length_vector,BMD_max_vals,"-k")
+legend("Buckling Top Mid Flange","Buckling Top Side Flange","location","best")
+ylabel("Bending Moment (N*mm)")
+xlabel("Location (mm)")
+set(gca,'Ydir','reverse')
+
+subplot(2,3,6)
+plot(Length_vector, Mf_buck3,"-r")
+hold on
+plot(Length_vector,BMD_max_vals,"-k")
+legend("Matboard Buckle Failure in Webs","location","best")
+ylabel("Bending Moment (N*mm)")
+xlabel("Location (mm)")
+set(gca,'Ydir','reverse')
+
+
+
+
