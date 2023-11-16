@@ -4,10 +4,10 @@ from scipy.optimize import curve_fit
 from scipy.stats import pearsonr
 
 # Sample data with uncertainties (x, y, x_err, y_err)
-x_data = np.array([0.006086427267, 0.005305039788, 0.004775549188, 0.004570383912, 0.003280839895, 0.002597402597, 0.007849293564, 0.006613756614, 0.004918839154, 0.002677376171])
-y_data = np.array([14.15, 12.57, 11.49, 11.12, 8.42, 6.11, 17.64, 15.21, 11.81, 7.18])
-y_err = np.array([0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0, 0, 0, 0])
-x_err = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+x_data = np.array([41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0])
+y_data = np.array([146,142,139,134,130,126,122,118,115,112,107,102,97,91,88,85,81,77,74,71,67,65,61,57,54,50,47,43,38,34,31,28,25,22,18,13,11,7,4,0,0,0])
+y_err = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+x_err = np.array([0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5])
 
 # Define the linear function for the line of best fit
 def linear_fit(x, m, b):
@@ -19,8 +19,13 @@ params, covariance = curve_fit(linear_fit, x_data, y_data)
 # Extract the best-fit parameters and their uncertainties
 m, b = params
 m_err, b_err = np.sqrt(np.diag(covariance))
-
 correlation, pvalue = pearsonr(x_data, y_data)
+
+# Reduced Chi Squared 
+residuals = y_data - linear_fit(x_data, m, b)
+chi_squared = np.sum((residuals / y_err) ** 2)
+degrees_of_freedom = len(x_data) - len(params)
+reduced_chi_squared = chi_squared / degrees_of_freedom
 
 # Create a figure with two subplots
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
@@ -37,7 +42,6 @@ ax1.set_title('Pulse Delay Measured After Number of LC Units Travelled')
 ax1.grid(True)
 
 # Create the residual plot on the second subplot
-residuals = y_data - linear_fit(x_data, m, b)
 ax2.errorbar(x_data, residuals, yerr=y_err, xerr=x_err, linestyle='', marker='o', markersize=5, color='b')
 ax2.axhline(0, color='r', linestyle='--', linewidth=1)
 ax2.set_xlabel('(λ-λ₀)⁻¹ [nm⁻¹]')
@@ -56,3 +60,4 @@ plt.show()
 print(f'Best-Fit Parameters:')
 print(f'Slope (m) = {m:.2f} ± {m_err:.2f}')
 print(f'Intercept (b) = {b:.2f} ± {b_err:.2f}')
+print(f'Chi Squared = {reduced_chi_squared:.2f}')
